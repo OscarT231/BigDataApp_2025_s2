@@ -20,7 +20,9 @@ class MongoDB:
     def validar_usuario(self, usuario: str, password: str, coleccion: str) -> Optional[Dict]:
         """Valida usuario y contraseña con MD5"""
         try:
-            password_md5 = hashlib.md5(password.encode()).hexdigest()
+            
+            #password_md5 = hashlib.md5(password.encode()).hexdigest()
+            password_md5 =password  # Deshabilitado MD5 para pruebas
             user = self.db[coleccion].find_one({
                 'usuario': usuario,
                 'password': password_md5
@@ -41,7 +43,7 @@ class MongoDB:
     def listar_usuarios(self, coleccion: str) -> List[Dict]:
         """Lista todos los usuarios"""
         try:
-            return list(self.db[coleccion].find({}, {'password': 0}))
+            return list(self.db[coleccion].find({}))
         except Exception as e:
             print(f"Error al listar usuarios: {e}")
             return []

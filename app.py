@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from dotenv import load_dotenv
 import os
 from Helpers import MongoDB, ElasticSearch, Funciones
@@ -38,7 +38,7 @@ def about():
     """Página About"""
     return render_template('about.html', version=VERSION_APP, creador=CREATOR_APP)
 
-
+#--------------rutas de mongodb (usuarios)-inicio-------------
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     """Página de login con validación"""
@@ -62,6 +62,24 @@ def login():
     
     return render_template('login.html')
 
+
+
+
+@app.route('/listar-usuarios')
+def listar_usuarios():
+    try:
+
+        usuarios = mongo.listar_usuarios(MONGO_COLECCION)
+        
+        # Convertir ObjectId a string para serialización JSON
+        for usuario in usuarios:
+            usuario['_id'] = str(usuario['_id'])
+        
+        return jsonify(usuarios)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500    
+
+#--------------rutas de mongodb (usuarios)-fin----------------
 @app.route('/admin')
 def admin():
     """Página de administración (protegida requiere login)"""
@@ -70,7 +88,6 @@ def admin():
         return redirect(url_for('login'))
     
     return render_template('admin.html', usuario=session.get('usuario'), permisos=session.get('permisos'))
-
 # ==================== MAIN ====================
 if __name__ == '__main__':
     # Crear carpetas necesarias
