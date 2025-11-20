@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
 from dotenv import load_dotenv
 import os
 from Helpers import MongoDB, ElasticSearch, Funciones
@@ -62,9 +62,6 @@ def login():
     
     return render_template('login.html')
 
-
-
-
 @app.route('/listar-usuarios')
 def listar_usuarios():
     try:
@@ -106,4 +103,9 @@ if __name__ == '__main__':
         print("✅ ElasticSearch Cloud: Conectado")
     else:
         print("❌ ElasticSearch Cloud: Error de conexión")
+    
+    print("="*50 + "\n")
+    
+    # Ejecutar la aplicación (localmente para pruebas)
+    #app.run(debug=True, host='0.0.0.0', port=5000)
 
