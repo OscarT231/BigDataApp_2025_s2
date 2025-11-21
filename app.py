@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify, flash
+from flask import Flask, render_template, request, redirect, url_for,jsonify, session, flash
 from dotenv import load_dotenv
 import os
 from Helpers import MongoDB, ElasticSearch, Funciones
@@ -20,7 +20,7 @@ ELASTIC_CLOUD_URL = os.getenv('ELASTIC_CLOUD_URL')
 ELASTIC_API_KEY = os.getenv('ELASTIC_API_KEY')
 
 # Versión de la aplicación
-VERSION_APP = "1.0.0"
+VERSION_APP = "1.2.0"
 CREATOR_APP = "LuisFCG"
 
 # Inicializar conexiones
@@ -74,9 +74,191 @@ def listar_usuarios():
         
         return jsonify(usuarios)
     except Exception as e:
-        return jsonify({'error': str(e)}), 500    
+        return jsonify({'error': str(e)}), 500 
 
-#--------------rutas de mongodb (usuarios)-fin----------------
+@app.route('/gestor_usuarios')
+def gestor_usuarios():
+    """Página de gestión de usuarios (protegida requiere login y permiso admin_usuarios) """
+    if not session.get('logged_in'):
+        flash('Por favor, inicia sesión para acceder a esta página', 'warning')
+        return redirect(url_for('login'))
+    
+    permisos = session.get('permisos', {})
+    if not permisos.get('admin_usuarios'):
+        flash('No tiene permisos para gestionar usuarios', 'danger')
+        return redirect(url_for('admin'))
+    
+    return render_template('gestor_usuarios.html', usuario=session.get('usuario'), permisos=permisos, version=VERSION_APP, creador=CREATOR_APP)
+
+@app.route('/crear-usuario', methods=['POST'])
+def crear_usuario():
+    """API para crear un nuevo usuario"""
+    try:
+        if not session.get('logged_in'):
+            return jsonify({'success': False, 'error': 'No autorizado'}), 401
+        
+        permisos = session.get('permisos', {})
+        if not permisos.get('admin_usuarios'):
+            return jsonify({'success': False, 'error': 'No tiene permisos para crear usuarios'}), 403
+        
+        data = request.get_json()
+        usuario = data.get('usuario')
+        password = data.get('password')
+        permisos_usuario = data.get('permisos', {})
+        
+        if not usuario or not password:
+            return jsonify({'success': False, 'error': 'Usuario y password son requeridos'}), 400
+        
+        # Verificar si el usuario ya existe
+        usuario_existente = mongo.obtener_usuario(usuario, MONGO_COLECCION)
+        if usuario_existente:
+            return jsonify({'success': False, 'error': 'El usuario ya existe'}), 400
+        
+        # Crear usuario
+        resultado = mongo.crear_usuario(usuario, password, permisos_usuario, MONGO_COLECCION)
+        
+        if resultado:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': 'Error al crear usuario'}), 500
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/actualizar-usuario', methods=['POST'])
+def actualizar_usuario():
+    """API para actualizar un usuario existente"""
+    try:
+        if not session.get('logged_in'):
+            return jsonify({'success': False, 'error': 'No autorizado'}), 401
+        
+        permisos = session.get('permisos', {})
+        if not permisos.get('admin_usuarios'):
+            return jsonify({'success': False, 'error': 'No tiene permisos para actualizar usuarios'}), 403
+        
+        data = request.get_json()
+        usuario_original = data.get('usuario_original')
+        datos_usuario = data.get('datos', {})
+        
+        if not usuario_original:
+            return jsonify({'success': False, 'error': 'Usuario original es requerido'}), 400
+        
+        # Verificar si el usuario existe
+        usuario_existente = mongo.obtener_usuario(usuario_original, MONGO_COLECCION)
+        if not usuario_existente:
+            return jsonify({'success': False, 'error': 'Usuario no encontrado'}), 404
+        
+        # Si el nombre de usuario cambió, verificar que no exista otro con ese nombre
+        nuevo_usuario = datos_usuario.get('usuario')
+        if nuevo_usuario and nuevo_usuario != usuario_original:
+            usuario_duplicado = mongo.obtener_usuario(nuevo_usuario, MONGO_COLECCION)
+            if usuario_duplicado:
+                return jsonify({'success': False, 'error': 'Ya existe otro usuario con ese nombre'}), 400
+        
+        # Actualizar usuario
+        resultado = mongo.actualizar_usuario(usuario_original, datos_usuario, MONGO_COLECCION)
+        
+        if resultado:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': 'Error al actualizar usuario'}), 500
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/eliminar-usuario', methods=['POST'])
+def eliminar_usuario():
+    """API para eliminar un usuario"""
+    try:
+        if not session.get('logged_in'):
+            return jsonify({'success': False, 'error': 'No autorizado'}), 401
+        
+        permisos = session.get('permisos', {})
+        if not permisos.get('admin_usuarios'):
+            return jsonify({'success': False, 'error': 'No tiene permisos para eliminar usuarios'}), 403
+        
+        data = request.get_json()
+        usuario = data.get('usuario')
+        
+        if not usuario:
+            return jsonify({'success': False, 'error': 'Usuario es requerido'}), 400
+        
+        # Verificar si el usuario existe
+        usuario_existente = mongo.obtener_usuario(usuario, MONGO_COLECCION)
+        if not usuario_existente:
+            return jsonify({'success': False, 'error': 'Usuario no encontrado'}), 404
+        
+        # No permitir eliminar al usuario actual
+        if usuario == session.get('usuario'):
+            return jsonify({'success': False, 'error': 'No puede eliminarse a sí mismo'}), 400
+        
+        # Eliminar usuario
+        resultado = mongo.eliminar_usuario(usuario, MONGO_COLECCION)
+        
+        if resultado:
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': 'Error al eliminar usuario'}), 500
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+#--------------rutas de mongodb (usuarios)-fin-------------
+#--------------rutas de elasitcsearch - inicio-------------
+@app.route('/gestor_elastic')
+def gestor_elastic():
+    """Página de gestión de ElasticSearch (protegida requiere login y permiso admin_elastic)"""
+    if not session.get('logged_in'):
+        flash('Por favor, inicia sesión para acceder a esta página', 'warning')
+        return redirect(url_for('login'))
+    
+    permisos = session.get('permisos', {})
+    if not permisos.get('admin_elastic'):
+        flash('No tiene permisos para gestionar ElasticSearch', 'danger')
+        return redirect(url_for('admin'))
+    
+    return render_template('gestor_elastic.html', usuario=session.get('usuario'), permisos=permisos, version=VERSION_APP, creador=CREATOR_APP)
+
+@app.route('/listar-indices-elastic')
+def listar_indices_elastic():
+    """API para listar índices de ElasticSearch"""
+    try:
+        if not session.get('logged_in'):
+            return jsonify({'error': 'No autorizado'}), 401
+        
+        permisos = session.get('permisos', {})
+        if not permisos.get('admin_elastic'):
+            return jsonify({'error': 'No tiene permisos para gestionar ElasticSearch'}), 403
+        
+        indices = elastic.listar_indices()
+        return jsonify(indices)
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+@app.route('/ejecutar-query-elastic', methods=['POST'])
+def ejecutar_query_elastic():
+    """API para ejecutar una query en ElasticSearch"""
+    try:
+        if not session.get('logged_in'):
+            return jsonify({'success': False, 'error': 'No autorizado'}), 401
+        
+        permisos = session.get('permisos', {})
+        if not permisos.get('admin_elastic'):
+            return jsonify({'success': False, 'error': 'No tiene permisos para gestionar ElasticSearch'}), 403
+        
+        data = request.get_json()
+        query_json = data.get('query')
+        
+        if not query_json:
+            return jsonify({'success': False, 'error': 'Query es requerida'}), 400
+        
+        resultado = elastic.ejecutar_query(query_json)
+        return jsonify(resultado)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+#--------------rutas de elasitcsearch - fin-------------
 @app.route('/admin')
 def admin():
     """Página de administración (protegida requiere login)"""
@@ -85,6 +267,9 @@ def admin():
         return redirect(url_for('login'))
     
     return render_template('admin.html', usuario=session.get('usuario'), permisos=session.get('permisos'))
+
+
+
 # ==================== MAIN ====================
 if __name__ == '__main__':
     # Crear carpetas necesarias
@@ -103,9 +288,7 @@ if __name__ == '__main__':
         print("✅ ElasticSearch Cloud: Conectado")
     else:
         print("❌ ElasticSearch Cloud: Error de conexión")
-    
-    print("="*50 + "\n")
-    
+
     # Ejecutar la aplicación (localmente para pruebas)
-    #app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5000)
 
