@@ -197,7 +197,7 @@ class ElasticSearch:
                 'error': str(e)
             }
     
-    def buscar(self, index: str, query: Dict, size: int = 10) -> Dict:
+    def buscar(self, index: str, query: Dict, aggs=None, size: int = 10) -> Dict:
         """
         Realiza una búsqueda en ElasticSearch
         
@@ -212,7 +212,7 @@ class ElasticSearch:
                 'success': True,
                 'total': response['hits']['total']['value'],
                 'resultados': response['hits']['hits'],
-                'aggs': response.get('aggregations', {})
+                'aggs': aggs
             }
         except Exception as e:
             return {
