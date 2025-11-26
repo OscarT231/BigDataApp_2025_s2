@@ -1,0 +1,28 @@
+# --- Archivos sensibles y de entorno ---
+.env
+.env.local
+*.key
+*.pem
+*.pfx
+
+# --- Carpetas de dependencias o basura ---
+__pycache__/
+*.pyc
+*.pyo
+
+# --- Entornos virtuales ---
+venv/
+env/
+.venv/
+.python-version
+
+# --- Archivos de logs ---
+*.log
+
+# --- Archivos de configuración locales ---
+.vscode/
+*.code-workspace
+
+# --- Archivos del sistema ---
+.DS_Store
+Thumbs.db

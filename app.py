@@ -1,11 +1,16 @@
-from flask import Flask, render_template, request, redirect, url_for,jsonify, session, flash
+
+# ...existing code...
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session, flash
 from dotenv import load_dotenv
-import os
-<<<<<<< HEAD
 from datetime import datetime
 from werkzeug.utils import secure_filename
-=======
->>>>>>> origin/main
+import os
+# ...existing code...
+#<<<<<<< HEAD
+from datetime import datetime
+from werkzeug.utils import secure_filename
+#=======
+#>>>>>>> origin/main
 from Helpers import MongoDB, ElasticSearch, Funciones, WebScraping
 
 # Cargar variables de entorno
@@ -51,21 +56,21 @@ def buscador():
     return render_template('buscador.html', version=VERSION_APP, creador=CREATOR_APP)
 
 @app.route('/buscar-elastic', methods=['POST'])
-<<<<<<< HEAD
-def buscar_elastic(): 
-=======
+#<<<<<<< HEAD
+
+#=======
 def buscar_elastic():
->>>>>>> origin/main
+#>>>>>>> origin/main
     """API para realizar búsqueda en ElasticSearch"""
     try:
         data = request.get_json()
         texto_buscar = data.get('texto', '').strip()
-<<<<<<< HEAD
+#<<<<<<< HEAD
         #campo = data.get('campo', '_all') # _opciones (traidos de un select del formulario): titulo, contenido, autor, fecha_creacion
         campo = 'texto'
-=======
+#=======
         campo = data.get('campo', '_all')
->>>>>>> origin/main
+#>>>>>>> origin/main
         
         if not texto_buscar:
             return jsonify({
@@ -73,21 +78,21 @@ def buscar_elastic():
                 'error': 'Texto de búsqueda es requerido'
             }), 400
         
-<<<<<<< HEAD
+#<<<<<<< HEAD
         # Definir aggregations/filtros
-=======
+#=======
         # Definir aggregations
->>>>>>> origin/main
+#>>>>>>> origin/main
         query_base= {"query": {
                             "match": {
                                 campo: texto_buscar
                             }
-<<<<<<< HEAD
+#<<<<<<< HEAD
                         } 
-=======
+#=======
                         }
->>>>>>> origin/main
-                    }
+#>>>>>>> origin/main
+
         aggs= {
             "cuentos_por_mes": {
                 "date_histogram": {
@@ -103,21 +108,21 @@ def buscar_elastic():
             }
         }
         
-<<<<<<< HEAD
+#<<<<<<< HEAD
         # Ejecutar búsqueda sobre elastic
-=======
+#=======
         # Ejecutar búsqueda con match_phrase
->>>>>>> origin/main
+#>>>>>>> origin/main
         resultado = elastic.buscar(
             index=ELASTIC_INDEX_DEFAULT,
             query=query_base,
             aggs=aggs,            
             size=100
         )
-<<<<<<< HEAD
+#<<<<<<< HEAD
         #print(resultado) 
-=======
->>>>>>> origin/main
+#=======
+#>>>>>>> origin/main
         
         return jsonify(resultado)
         
@@ -359,7 +364,7 @@ def cargar_doc_elastic():
         return redirect(url_for('admin'))
     
     return render_template('documentos_elastic.html', usuario=session.get('usuario'), permisos=permisos, version=VERSION_APP, creador=CREATOR_APP)
-<<<<<<< HEAD
+#<<<<<<< HEAD
 
 @app.route('/procesar-webscraping-elastic', methods=['POST'])
 def procesar_webscraping_elastic():
@@ -594,8 +599,8 @@ def cargar_documentos_elastic():
         
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
-=======
->>>>>>> origin/main
+#=======
+#>>>>>>> origin/main
 
 @app.route('/procesar-webscraping-elastic', methods=['POST'])
 def procesar_webscraping_elastic():
